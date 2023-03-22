@@ -73,6 +73,10 @@ class TT_Umpire : public rclcpp::Node {
                 timer_ = rclcpp::create_timer(this, this->get_clock(), 0.5s, std::bind(&TT_Umpire::second_assignment_grading_system, this));
             }
             else if (assignment_ == 3) {
+                topics_to_check_ = std::vector<std::string>{"/tf","/tf_static"};
+                points_ = std::vector<int>{5,5,5,5,80};
+                tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+                tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
                 timer_ = rclcpp::create_timer(this, this->get_clock(), 0.5s, std::bind(&TT_Umpire::third_assignment_grading_system, this));
             }
         }
@@ -93,23 +97,40 @@ class TT_Umpire : public rclcpp::Node {
 
         void e_callback(const std::shared_ptr<std_srvs::srv::Empty::Request>,
           std::shared_ptr<std_srvs::srv::Empty::Response>) {
-            if (dcnt_ >= 4) {
-                return;
+            if (assignment_ == 2) {
+                if (dcnt_ >= 4) {
+                    return;
+                }
+                try {
+                    auto t = tf_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero, tf2::Duration(20));
+                    auto x = t.transform.translation.x - a2_goals_[dcnt_].translation.x;
+                    auto y = t.transform.translation.y - a2_goals_[dcnt_].translation.y;
+                    auto z = t.transform.rotation.z - a2_goals_[dcnt_].rotation.z;
+                    auto w = t.transform.rotation.w - a2_goals_[dcnt_].rotation.w;
+                    auto distance = sqrt(x*x+y*y+(z*z+w*w)/2);
+                    auto dweight = distance > 0 ? std::min(1.0, 1.0/(6*distance)) : 1.0;
+                    info(std::string("Measured distance and weight ").append(std::to_string(distance)).append(",").append(std::to_string(dweight)));
+                    award_points(state_, dweight);
+                    dcnt_++;
+                }
+                catch (const tf2::TransformException & ex) {
+                    RCLCPP_ERROR(this->get_logger(), "%s!", ex.what());
+                }
             }
-            try {
-                auto t = tf_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero);
-                auto x = t.transform.translation.x - a2_goals_[dcnt_].translation.x;
-                auto y = t.transform.translation.y - a2_goals_[dcnt_].translation.y;
-                auto z = t.transform.rotation.z - a2_goals_[dcnt_].rotation.z;
-                auto w = t.transform.rotation.w - a2_goals_[dcnt_].rotation.w;
-                auto distance = sqrt(x*x+y*y+(z*z+w*w)/2);
-                auto dweight = distance > 0 ? std::min(1.0, 1.0/(6*distance)) : 1.0;
-                info(std::string("Measured distance and weight ").append(std::to_string(distance)).append(",").append(std::to_string(dweight)));
-                award_points(state_, dweight);
-                dcnt_++;
-            }
-            catch (const tf2::TransformException & ex) {
-                RCLCPP_ERROR(this->get_logger(), "%s!", ex.what());
+            else if (assignment_ == 3) {
+                try {
+                    auto t = tf_buffer_->lookupTransform("gripper_tool_link", "tt_racket_handle_link", tf2::TimePointZero, tf2::Duration(20));
+                    auto x = t.transform.translation.x;
+                    auto y = t.transform.translation.y;
+                    auto z = t.transform.translation.z + 0.20;
+                    auto distance = sqrt(x*x+y*y+z*z);
+                    auto dweight = distance > 0 ? std::min(1.0, 1.0/(6*distance)) : 1.0;
+                    info(std::string("Measured distance and weight ").append(std::to_string(distance)).append(",").append(std::to_string(dweight)));
+                    award_points(state_, dweight);
+                }
+                catch (const tf2::TransformException & ex) {
+                    RCLCPP_ERROR(this->get_logger(), "%s!", ex.what());
+                }
             }
             state_++;
         }
@@ -122,7 +143,7 @@ class TT_Umpire : public rclcpp::Node {
         }
 
         void time_handler() {
-            if (((this->now()-start_time_).seconds() > seconds_of_attention_) or (assignment_ == 2 and dcnt_ == 4)) {
+            if (((this->now()-start_time_).seconds() > seconds_of_attention_) or (assignment_ == 2 and dcnt_ == 4) or (assignment_ == 3 and state_ >= 5)) {
                 timer_->cancel();
                 stop_ = true;
                 if (assignment_ == 1) {
@@ -233,7 +254,25 @@ class TT_Umpire : public rclcpp::Node {
                     if (lifecycle_tester()) {
                         break;
                     }
-                    // [[fallthrough]];
+                    [[fallthrough]];
+                case 1: [[fallthrough]]; case 2: [[fallthrough]]; case 3:
+                        if (prev_state_ != state_) {
+                            info(std::string("Testing if your node has the expected paired subscription count and state..."));
+                            prev_state_ = state_;
+                        }
+                        {
+                            auto request = std::make_shared<lifecycle_msgs::srv::GetState::Request>();
+                            auto result = lifecycle_checker_->async_send_request(request, std::bind(&TT_Umpire::get_state_callback, this, _1));
+                            // I would prefer a simple async_send_request(request) here, but there is a bug (PR not merged yet)
+                            // https://github.com/ros2/rclcpp/issues/2039
+                        }
+                        break;
+                case 4:
+                        if (prev_state_ != state_) {
+                            e_service_ = this->create_service<std_srvs::srv::Empty>("~/assignment3/i_feel_confident", std::bind(&TT_Umpire::e_callback, this, _1, _2));
+                            info(std::string("Waiting for an empty request to test the gripper's position related to the racket's handle..."));
+                            prev_state_ = state_;
+                        }
             }
         }
         
@@ -247,7 +286,7 @@ class TT_Umpire : public rclcpp::Node {
                 for (auto topic : topics_to_check_) {
                     sub_cnt += this->count_subscribers(topic);
                 }
-                if ( (assignment_ == 1 and sub_cnt == 0) or (assignment_ == 2 and sub_cnt/2<9) ) {
+                if ( (assignment_ == 1 and sub_cnt == 0) or (assignment_ == 2 and sub_cnt/2<9) or (assignment_ == 3 and sub_cnt == 18)) {
                     info(std::string("Good job, you have not subscribed to any suspicious topics while being unconfigured/inactive!"));
                     prev_state_ = state_;
                     award_points(prev_state_);
@@ -258,7 +297,7 @@ class TT_Umpire : public rclcpp::Node {
                 for (auto topic : topics_to_check_) {
                     sub_cnt += this->count_subscribers(topic);
                 }
-                if ( (assignment_ == 1 and sub_cnt > 0) or (assignment_ == 2 and sub_cnt/2>=9) ) {
+                if ( (assignment_ == 1 and sub_cnt > 0) or (assignment_ >= 2 and sub_cnt/2>=9) ) {
                     info(std::string("Good job, you have subscribed to at least one interesting topic while activated!"));
                     prev_state_ = state_;
                     award_points(prev_state_);

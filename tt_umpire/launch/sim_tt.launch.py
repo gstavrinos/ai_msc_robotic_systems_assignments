@@ -60,7 +60,7 @@ def generate_launch_description():
             executable="odom_to_tf",
             name="table_odom_to_tf",
             parameters=[
-                {"odom_topic": "/p3d/table_odom"},
+                {"use_sim_time": True,"odom_topic": "/p3d/table_odom"},
                 ]
             )
 
@@ -77,7 +77,7 @@ def generate_launch_description():
             executable="odom_to_tf",
             name="racket_odom_to_tf",
             parameters=[
-                {"odom_topic": "/p3d/racket_odom"},
+                {"use_sim_time": True,"odom_topic": "/p3d/racket_odom"},
                 ]
             )
 
@@ -97,26 +97,9 @@ def generate_launch_description():
             executable="odom_to_tf",
             name="ball_odom_to_tf",
             parameters=[
-                {"odom_topic": "/p3d/ball_odom"},
+                {"use_sim_time": True,"odom_topic": "/p3d/ball_odom"},
                 ]
             )
-
-    play_motion = ExecuteProcess(
-        cmd=["ros2", "launch", "tiago_bringup", "play_motion.launch.py"],
-        output="screen"
-    )
-    
-    home_arm = ExecuteProcess(
-        cmd=[[
-            FindExecutable(name='ros2'),
-            ' action ', 'send_goal ',
-            '/play_motion ',
-            'play_motion_msgs/action/PlayMotion ',
-            '--feedback ',
-            '"{motion_name: home, skip_planning: false, priority: 0}"'
-            ]],
-        shell=True
-    )
 
     ball_locator_launch = ExecuteProcess(
         cmd=["ros2", "launch", "tt_ball_locator", "ball_locator.launch.py"],
@@ -170,23 +153,28 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 [FindPackageShare("tiago_gazebo"), "/launch", "/tiago_gazebo.launch.py"]
             ),
-            launch_arguments={"pause":"true", "moveit":"true", "navigation":"true"}.items()
+            launch_arguments={"use_rviz":"true","moveit":"true", "navigation":"true"}.items()
         ),
 
-        GroupAction(
-            actions=[
-                table_description_launch,
-                spawn_table,
-                table_tf,
-            ]
-        ),
+        TimerAction(
+            period = 10.0,
+            actions = [
+                GroupAction(
+                    actions=[
+                        table_description_launch,
+                        spawn_table,
+                        table_tf,
+                        ]
+                    ),
+                ]
+            ),
 
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=spawn_table,
                 on_exit=[
                     TimerAction(
-                        period = 20.0,
+                        period = 10.0,
                         actions = [
                             GroupAction(
                                 actions=[racket_description_launch, spawn_racket, racket_tf]
@@ -218,39 +206,7 @@ def generate_launch_description():
                 target_action=spawn_table,
                 on_exit=[
                     TimerAction(
-                        period = 20.0,
-                        actions = [
-                            GroupAction(
-                                actions=[play_motion]
-                            ),
-                        ]
-                    )
-                ],
-            )
-        ),
-
-        RegisterEventHandler(
-            event_handler=OnProcessStart(
-                target_action=play_motion,
-                on_start=[
-                    TimerAction(
-                        period = 10.0,
-                        actions = [
-                            GroupAction(
-                                actions=[home_arm]
-                            ),
-                        ]
-                    )
-                ],
-            )
-        ),
-
-        RegisterEventHandler(
-            event_handler=OnProcessExit(
-                target_action=home_arm,
-                on_exit=[
-                    TimerAction(
-                        period = 2.0,
+                        period = 5.0,
                         actions = [
                             GroupAction(
                                 actions=[ball_locator_launch, table_explorer_launch, racket_handling_launch, tt_umpire_node]
