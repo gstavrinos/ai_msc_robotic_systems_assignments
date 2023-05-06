@@ -1,0 +1,56 @@
+- git:
+    local-name: ai_msc_robotic_systems_assignments
+    uri: https://github.com/gstavrinos/ai_msc_robotic_systems_assignments.git
+    version: master
+- git:
+    local-name: tiago_moveit_config
+    uri: https://github.com/pal-robotics/tiago_moveit_config.git
+    version: 22d06939f45c3214268f700b9f8bdcfe3adc66f1
+- git:
+    local-name: tiago_navigation
+    uri: https://github.com/pal-robotics/tiago_navigation.git
+    version: 00af7b12bd4eeb2422140e8b8309b7672cb4987b
+- git:
+    local-name: tiago_robot
+    uri: https://github.com/pal-robotics/tiago_robot.git
+    version: 54116c57e051be3910d734712d10e5ed67bbc0c1
+- git:
+    local-name: tiago_simulation
+    uri: https://github.com/pal-robotics/tiago_simulation.git
+    version: 33354a6c0322d36713954b3be92de5264f7e2629
+- git:
+    local-name: gazebo_table_tennis
+    uri: https://github.com/gstavrinos/gazebo_table_tennis.git
+    version: master
+- git:
+    local-name: hey5_description
+    uri: https://github.com/pal-robotics/hey5_description.git
+    version: cd4a8d1713ef6cec93c50fce6161dda8eb857578
+- git:
+    local-name: launch_pal
+    uri: https://github.com/pal-robotics/launch_pal.git
+    version: cea35f222b953a3c7b7d8d1d48db397657477389
+- git:
+    local-name: pal_gazebo_worlds
+    uri: https://github.com/gstavrinos/pal_gazebo_worlds.git
+    version: humble-devel
+- git:
+    local-name: pal_gripper
+    uri: https://github.com/pal-robotics/pal_gripper.git
+    version: b00f14db17f8b7aaf7cf5a21a26b26d3112ccbf3
+- git:
+    local-name: pmb2_navigation
+    uri: https://github.com/pal-robotics/pmb2_navigation.git
+    version: 41ba646ba1a84687c0f087f870ad848b5558faa0
+- git:
+    local-name: pmb2_robot
+    uri: https://github.com/pal-robotics/pmb2_robot.git
+    version: adb66a64369146937e7f67603365792115cfe1d8
+- git:
+    local-name: urdf_test
+    uri: https://github.com/pal-robotics/urdf_test.git
+    version: 790f4f07615a96ea4049a0edd785dd41e20ac224
+- git:
+    local-name: ros2_controllers
+    uri: https://github.com/jmguerreroh/ros2_controllers
+    version: humble
