@@ -1,8 +1,4 @@
 - git:
-    local-name: ai_msc_robotic_systems_assignments
-    uri: https://github.com/gstavrinos/ai_msc_robotic_systems_assignments.git
-    version: master
-- git:
     local-name: tiago_moveit_config
     uri: https://github.com/pal-robotics/tiago_moveit_config.git
     version: 22d06939f45c3214268f700b9f8bdcfe3adc66f1
