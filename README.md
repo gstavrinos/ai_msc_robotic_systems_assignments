@@ -8,9 +8,8 @@ Good luck!
 
 ## Easily installing dependencies
 
-Run the bash script included in this reposory like this:
-
-`bash dependencies.bash`
+* Clone this repository inside the src folder of your workspace (e.g. `~/ros2_ws/src`). This is mandatory, since the script makes such assumption.
+* Run the bash script included in this reposory like this: `bash dependencies.bash`
 
 
 ## The mood when a new deadline is announced:
