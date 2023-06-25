@@ -22,6 +22,13 @@ def generate_launch_description():
         default_value="0"
     )
 
+    easy_mode = LaunchConfiguration("easy_mode")
+
+    easy_mode_arg = DeclareLaunchArgument(
+        "easy_mode",
+        default_value="false"
+    )
+
     target_node_name = LaunchConfiguration("target_node_name")
 
     target_node_name_arg = DeclareLaunchArgument(
@@ -33,6 +40,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             [FindPackageShare("gazebo_table_tennis"), "/launch", "/table_description.launch.py"]
         ),
+        launch_arguments={"easy_collision":PythonExpression(["'", easy_mode, "'"])}.items(),
     )
 
     racket_description_launch = IncludeLaunchDescription(
@@ -147,6 +155,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
         assignment_arg,
+        easy_mode_arg,
         target_node_name_arg,
 
         IncludeLaunchDescription(
