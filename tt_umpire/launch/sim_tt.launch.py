@@ -151,6 +151,14 @@ def generate_launch_description():
         condition=IfCondition(PythonExpression(["'", assignment, "' > '0'"])),
     )
 
+    load_map_with_table = ExecuteProcess(
+            cmd=["ros2", "service", "call", "/map_server/load_map", "nav2_msgs/srv/LoadMap", "map_url: '"+os.path.join(
+            get_package_share_directory("tt_umpire"),
+            "maps", "pal_with_tt_table.yaml")+"'"],
+        output="screen",
+        condition=IfCondition(PythonExpression(["'", assignment, "' == '2' and '", easy_mode,"'"])),
+    )
+
 
     return LaunchDescription(
         [
@@ -173,6 +181,7 @@ def generate_launch_description():
                         table_description_launch,
                         spawn_table,
                         table_tf,
+                        load_map_with_table,
                         ]
                     ),
                 ]
