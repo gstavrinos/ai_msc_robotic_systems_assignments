@@ -205,7 +205,7 @@ class TT_Umpire : public rclcpp::Node {
                                 auto z = t.transform.translation.z - latest_odom_->pose.pose.position.z;
                                 auto distance = sqrt(x*x+y*y+z*z);
                                 dcnt_++;
-                                mean_d_ = distance / dcnt_;
+                                mean_d_ += distance / dcnt_;
                                 if (dcnt_ % 10 == 0) {
                                     info(std::string("Mean distance = ").append(std::to_string(mean_d_)).append(" meters!"));
                                 }
