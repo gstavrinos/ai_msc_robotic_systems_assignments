@@ -7,13 +7,23 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 
+find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
+
+include(FetchContent)
+FetchContent_Declare(
+  rosbag
+  URL https://github.com/gstavrinos/ai_msc_robotic_systems_assignments/releases/download/data-from-rosbag/ai_msc_robotic_systems_rosbag.tar.gz
+)
+
+FetchContent_MakeAvailable(rosbag)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -29,6 +39,13 @@ endif()
 
 add_executable(${PROJECT_NAME} src/tt_umpire.cpp)
 ament_target_dependencies(${PROJECT_NAME} rclcpp tf2_ros std_srvs nav_msgs geometry_msgs lifecycle_msgs)
+
+install(DIRECTORY scripts/
+      DESTINATION lib/${PROJECT_NAME}
+      FILES_MATCHING
+      PATTERN "*.py"
+      PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
+)
 
 install(TARGETS ${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME})
