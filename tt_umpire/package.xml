@@ -8,7 +8,9 @@
   <license>Apache License 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
+  <depend>rclpy</depend>
   <depend>rclcpp</depend>
   <depend>tf2_ros</depend>
   <depend>std_srvs</depend>
