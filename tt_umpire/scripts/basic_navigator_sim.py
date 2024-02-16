@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import time
 import rclpy
+import asyncio
 import threading
 from rclpy.node import Node
 from lifecycle_msgs.srv import GetState
@@ -22,6 +23,12 @@ class BasicNavigatorSimulator(Node):
         self.current_pose = PoseStamped()
         self.goal_pose = PoseStamped()
         self.pose_step = 0.1
+        self.subscription = self.create_subscription(
+            PoseStamped,
+            "/goal_pose",
+            self.goal_pose_callback,
+            1
+        )
         self.amcl_get_state_service = self.create_service(
             GetState,
             "/amcl/get_state",
@@ -44,6 +51,10 @@ class BasicNavigatorSimulator(Node):
         )
         # Set up publisher and subscriber
         self.tf_broadcaster = TransformBroadcaster(self)
+
+    def goal_pose_callback(self, msg):
+        self.goal_pose = msg
+        asyncio.run(self.execute_callback(None))
 
     def destroy(self):
         self._action_server.destroy()
@@ -68,7 +79,7 @@ class BasicNavigatorSimulator(Node):
         elapsed_time = 0.0
         with self.mutex:
             while self.goal_pose != self.current_pose:
-                if goal_handle.is_cancel_requested:
+                if goal_handle and goal_handle.is_cancel_requested:
                     goal_handle.canceled()
                     self.get_logger().info('Goal canceled')
                     result = NavigateToPose.Result()
@@ -117,16 +128,18 @@ class BasicNavigatorSimulator(Node):
                 self.amcl_pub.publish(amcl_pose)
 
                 elapsed_time += 1
-                feedback = NavigateToPose.Feedback()
-                feedback.current_pose = self.current_pose
-                feedback.distance_remaining = distance
-                feedback.navigation_time = Duration(sec=int(elapsed_time))
-                feedback.estimated_time_remaining = Duration(sec=int(distance*self.pose_step))
-                goal_handle.publish_feedback(feedback)
+                if goal_handle:
+                    feedback = NavigateToPose.Feedback()
+                    feedback.current_pose = self.current_pose
+                    feedback.distance_remaining = distance
+                    feedback.navigation_time = Duration(sec=int(elapsed_time))
+                    feedback.estimated_time_remaining = Duration(sec=int(distance*self.pose_step))
+                    goal_handle.publish_feedback(feedback)
 
                 time.sleep(1)
 
-            goal_handle.succeed()
+            if goal_handle:
+                goal_handle.succeed()
             return NavigateToPose.Result()
 
 
