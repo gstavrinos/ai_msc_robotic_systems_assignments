@@ -146,8 +146,8 @@ class TT_Umpire : public rclcpp::Node {
             if (((this->now()-start_time_).seconds() > seconds_of_attention_) or (assignment_ == 2 and dcnt_ == 4) or (assignment_ == 3 and state_ >= 5)) {
                 timer_->cancel();
                 stop_ = true;
-                if (assignment_ == 1) {
-                    curr_points_ += (points_.back() - points_.back() * mean_d_) * (dcnt_ > 0);
+                if (assignment_ == 1 and dcnt_ > 0) {
+                    curr_points_ += (points_.back() - points_.back() * mean_d_ / dcnt_);
                 }
                 info(std::string("\n***************\nFinal points awarded ").append(std::to_string(curr_points_)).append("/").append(std::to_string(std::reduce(points_.begin(), points_.end()))).append("...\n***************"));
                 rclcpp::shutdown();
@@ -205,9 +205,9 @@ class TT_Umpire : public rclcpp::Node {
                                 auto z = t.transform.translation.z - latest_odom_->pose.pose.position.z;
                                 auto distance = sqrt(x*x+y*y+z*z);
                                 dcnt_++;
-                                mean_d_ += distance / dcnt_;
+                                mean_d_ += distance;
                                 if (dcnt_ % 10 == 0) {
-                                    info(std::string("Mean distance = ").append(std::to_string(mean_d_)).append(" meters!"));
+                                    info(std::string("Mean distance = ").append(std::to_string(mean_d_/dcnt_)).append(" meters!"));
                                 }
                             }
                             catch (const tf2::TransformException & ex) {
